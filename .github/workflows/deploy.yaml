@@ -1,0 +1,46 @@
+name: Apply migrations
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply migrations
+        run: echo "Applying migrations"
+
+  changes:
+    needs: migrate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            node:
+              - 'core-node/**'
+              - 'k8s/*/node/**'
+              - ".github/workflows/node-deploy-dev.yaml"
+            go:
+              - 'exec/**'
+              - 'k8s/*/go/**'
+              - '.github/workflows/go-deploy-dev.yaml'
+
+  node:
+    needs: changes
+    if: ${{ needs.changes.outputs.node == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Deploying node"
+
+  go:
+    needs: changes
+    if: ${{ needs.changes.outputs.go == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Deploying go"
